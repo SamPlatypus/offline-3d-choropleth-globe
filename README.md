@@ -9,20 +9,21 @@ Fully offline-capable, mobile-first 3D spinnable world globe with choropleth cou
 - [x] Repository created
 - [x] Project scaffolded (Expo + React Native)
 - [x] Real 3D globe integrated (`@aeryflux/globe`)
-- [x] **Sample metric data + dynamic choropleth coloring** (Population / Land Area / GDP per Capita)
+- [x] Sample metric data + dynamic choropleth coloring
 - [x] Country tap → value shown in panel
 - [x] Soft ambient color scale
-- [ ] **True offline model bundling** (currently uses the small mobile CDN model; see instructions below)
-- [ ] Legend component
+- [x] **Legend component**
+- [ ] True offline model bundling (code ready — just add the GLB file)
 - [ ] APK build via EAS
 
 ## What’s working now
 
 - Interactive 3D globe (drag to rotate, pinch to zoom)
-- Soft dark ambient look
-- 30 sample countries colored by the active metric (gentle blue-teal scale)
-- Switch metrics → countries recolor live
-- Tap country → name + formatted value in the bottom panel
+- Soft dark ambient look with gentle country highlights
+- 30 sample countries colored by the active metric
+- Live recolor when switching metrics
+- Tap country → name + formatted value
+- Color legend under the globe
 - Metric switcher + clean dark UI
 
 ## Run
@@ -34,34 +35,45 @@ npm install
 npx expo start
 ```
 
-## Making the model fully offline
+## Making the model fully offline (one-time step)
 
-The globe currently loads the lightweight mobile model from the package CDN:
+The code is prepared for a local model. Currently it still uses the small CDN model so the project runs immediately.
+
+**To go fully offline:**
+
+1. Download the mobile model (~1 MB):
+   ```
+   https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb
+   ```
+
+2. Create the folder and place the file:
+   ```
+   assets/models/atlas_hex_subdiv_5L.glb
+   ```
+
+3. In `App.tsx`, change the model line to:
+   ```ts
+   const MODEL_URL = require('./assets/models/atlas_hex_subdiv_5L.glb');
+   ```
+
+4. Restart Expo / rebuild.
+
+After that the app needs no network after install.
+
+## Project structure
 
 ```
-https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb
+App.tsx                 # Main screen + globe
+components/Legend.tsx   # Soft color legend
+data/sampleMetrics.ts   # Sample offline metrics + color helpers
+metro.config.js         # Required for @aeryflux/globe
 ```
 
-(~1 MB – good for mobile)
+## Next recommended steps
 
-**To ship fully offline:**
-
-1. Download that file.
-2. Place it at `assets/models/atlas_hex_subdiv_5L.glb`.
-3. In `App.tsx` change `modelUrl` to the local asset (using `expo-asset` or a `require` / `Asset.fromModule` pattern).
-4. Rebuild.
-
-Once that is done the app needs no network after install.
-
-## Sample Data
-
-See `data/sampleMetrics.ts`. Values are illustrative / public-domain-style approximations for demo purposes only.
-
-## Next
-
-- Bundle the GLB for true offline
-- Simple legend
-- EAS APK build
+- Add the GLB for true offline
+- EAS Build → APK
+- Optional: more countries, search, or auto-rotate toggle
 
 ## License
 

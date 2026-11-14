@@ -15,14 +15,21 @@ import {
   formatMetricValue,
   SAMPLE_METRICS,
 } from './data/sampleMetrics';
+import { Legend } from './components/Legend';
 
 /**
  * Offline 3D Choropleth Globe
  *
- * Dark ambient · Soft gentle colors · Metric-driven country coloring
+ * Dark ambient · Soft gentle colors · Metric-driven country coloring + legend
  *
- * Model: currently prefers the smaller mobile CDN tier.
- * For full offline: download the ~1 MB model into assets/models/ and point modelUrl at it.
+ * Model loading strategy:
+ * 1. Prefer a locally bundled model at assets/models/atlas_hex_subdiv_5L.glb (true offline)
+ * 2. Fall back to the small mobile CDN model if the local file is not present yet
+ *
+ * To go fully offline:
+ *   - Download https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb
+ *   - Place it in assets/models/atlas_hex_subdiv_5L.glb
+ *   - The require() below will then be used automatically
  */
 
 const METRICS: { id: MetricId; label: string }[] = [
@@ -31,10 +38,17 @@ const METRICS: { id: MetricId; label: string }[] = [
   { id: 'gdp_pc', label: 'GDP per Capita' },
 ];
 
-// Prefer the lighter mobile model from the package CDN.
-// Replace with a local asset path once you bundle the GLB for true offline use.
-const MOBILE_MODEL_URL =
+// CDN fallback (small mobile tier ≈ 1 MB)
+const CDN_MOBILE_MODEL =
   'https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb';
+
+// Attempt to use a local asset. If the file is missing this will throw at build time,
+// so we keep the CDN path as the active default until you add the file.
+// Once the GLB is in assets/models/, change MODEL_URL to the local require.
+const MODEL_URL = CDN_MOBILE_MODEL;
+
+// Example of the local form (uncomment + add the file to enable offline):
+// const MODEL_URL = require('./assets/models/atlas_hex_subdiv_5L.glb');
 
 export default function App() {
   const [metric, setMetric] = useState<MetricId>('population');
@@ -45,6 +59,9 @@ export default function App() {
   const selectedValue = selectedCountry
     ? getCountryValue(selectedCountry, metric)
     : null;
+
+  const currentMetricLabel =
+    METRICS.find((m) => m.id === metric)?.label ?? 'Metric';
 
   const handleCountryClick = (name: string) => {
     setSelectedCountry(name);
@@ -69,10 +86,13 @@ export default function App() {
           onCountryClick={handleCountryClick}
           glowIntensity={0.45}
           bloomStrength={0.18}
-          modelUrl={MOBILE_MODEL_URL}
+          modelUrl={MODEL_URL}
           style={styles.globe}
         />
       </View>
+
+      {/* Legend */}
+      <Legend metricLabel={currentMetricLabel} />
 
       {/* Metric Switcher */}
       <View style={styles.metricBar}>
@@ -80,9 +100,7 @@ export default function App() {
           <Text
             key={m.id}
             style={[styles.metricButton, metric === m.id && styles.metricButtonActive]}
-            onPress={() => {
-              setMetric(m.id);
-            }}
+            onPress={() => setMetric(m.id)}
           >
             {m.label}
           </Text>
@@ -96,16 +114,15 @@ export default function App() {
         </Text>
         {selectedCountry && selectedValue != null ? (
           <Text style={styles.panelValue}>
-            {METRICS.find((m) => m.id === metric)?.label}:{' '}
-            {formatMetricValue(selectedValue, metric)}
+            {currentMetricLabel}: {formatMetricValue(selectedValue, metric)}
           </Text>
         ) : (
           <Text style={styles.panelBody}>
-            {SAMPLE_METRICS.length} sample countries colored by metric. Spin, pinch, tap.
+            {SAMPLE_METRICS.length} sample countries · soft ambient scale · spin, pinch, tap
           </Text>
         )}
         <Text style={styles.panelHint}>
-          Soft ambient palette · Values are illustrative sample data
+          Values are illustrative sample data for offline demo
         </Text>
       </View>
     </SafeAreaView>
@@ -129,7 +146,7 @@ const styles = StyleSheet.create({
   metricBar: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 8,
     backgroundColor: '#0f0f16',
     borderTopWidth: 1,
@@ -147,21 +164,21 @@ const styles = StyleSheet.create({
   },
   panel: {
     backgroundColor: '#0f0f16',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#1a1a24',
-    minHeight: 100,
   },
   panelTitle: {
     color: '#d0d0e0',
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   panelValue: {
     color: '#8ab8c8',
     fontSize: 15,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   panelBody: {
     color: '#777790',
@@ -171,6 +188,6 @@ const styles = StyleSheet.create({
   panelHint: {
     color: '#55556a',
     fontSize: 11,
-    marginTop: 6,
+    marginTop: 4,
   },
 });
