@@ -5,49 +5,46 @@ import {
   Text,
   SafeAreaView,
   StatusBar,
-  Dimensions,
 } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Globe } from '@aeryflux/globe/react-native';
+import {
+  MetricId,
+  buildCountryData,
+  getCountryValue,
+  formatMetricValue,
+  SAMPLE_METRICS,
+} from './data/sampleMetrics';
 
 /**
  * Offline 3D Choropleth Globe
  *
- * Dark ambient style · Soft gentle colors · Spinnable globe with country interaction
+ * Dark ambient · Soft gentle colors · Metric-driven country coloring
  *
- * Current: Real 3D globe (aeryflux) with controls + country click.
- * Next: Full offline models, metric-driven choropleth coloring, sample data values.
+ * Model: currently prefers the smaller mobile CDN tier.
+ * For full offline: download the ~1 MB model into assets/models/ and point modelUrl at it.
  */
 
-const METRICS = [
+const METRICS: { id: MetricId; label: string }[] = [
   { id: 'population', label: 'Population' },
   { id: 'area', label: 'Land Area' },
   { id: 'gdp_pc', label: 'GDP per Capita' },
-] as const;
+];
 
-type MetricId = (typeof METRICS)[number]['id'];
-
-// Soft ambient demo highlights (gentle blues / teals / muted greens)
-// These will later be driven by real metric values + color scale.
-const DEMO_COUNTRY_DATA: Record<string, { scale: number; color?: string; extrusion?: number }> = {
-  'United States': { scale: 0.85, color: '#5b8fa8', extrusion: 0.15 },
-  China: { scale: 0.9, color: '#4a7c8c', extrusion: 0.12 },
-  India: { scale: 0.8, color: '#6a9aaa', extrusion: 0.1 },
-  Brazil: { scale: 0.75, color: '#5a8a7a', extrusion: 0.08 },
-  Russia: { scale: 0.7, color: '#4a6a8a', extrusion: 0.1 },
-  Japan: { scale: 0.65, color: '#7a9aaa', extrusion: 0.05 },
-  Germany: { scale: 0.6, color: '#6a8a9a', extrusion: 0.05 },
-  'United Kingdom': { scale: 0.55, color: '#5a7a8a', extrusion: 0.04 },
-  France: { scale: 0.55, color: '#6a8aaa', extrusion: 0.04 },
-  Australia: { scale: 0.5, color: '#5a8a7a', extrusion: 0.06 },
-};
+// Prefer the lighter mobile model from the package CDN.
+// Replace with a local asset path once you bundle the GLB for true offline use.
+const MOBILE_MODEL_URL =
+  'https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb';
 
 export default function App() {
   const [metric, setMetric] = useState<MetricId>('population');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
 
-  // For now the demo data is static. Later this will recompute colors/scales from the active metric.
-  const countryData = useMemo(() => DEMO_COUNTRY_DATA, []);
+  const countryData = useMemo(() => buildCountryData(metric), [metric]);
+
+  const selectedValue = selectedCountry
+    ? getCountryValue(selectedCountry, metric)
+    : null;
 
   const handleCountryClick = (name: string) => {
     setSelectedCountry(name);
@@ -58,21 +55,21 @@ export default function App() {
       <ExpoStatusBar style="light" />
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
 
-      {/* 3D Globe */}
       <View style={styles.globeContainer}>
         <Globe
           surface="dark"
           showCountries
           showBorders
           enableControls
-          rotationSpeed={0.00025}
-          ambientIntensity={0.25}
+          rotationSpeed={0.00022}
+          ambientIntensity={0.22}
           ambientColor="#6a9aaa"
           countryData={countryData}
           dataHighlightColor="#7ab8c8"
           onCountryClick={handleCountryClick}
-          glowIntensity={0.5}
-          bloomStrength={0.2}
+          glowIntensity={0.45}
+          bloomStrength={0.18}
+          modelUrl={MOBILE_MODEL_URL}
           style={styles.globe}
         />
       </View>
@@ -83,7 +80,9 @@ export default function App() {
           <Text
             key={m.id}
             style={[styles.metricButton, metric === m.id && styles.metricButtonActive]}
-            onPress={() => setMetric(m.id)}
+            onPress={() => {
+              setMetric(m.id);
+            }}
           >
             {m.label}
           </Text>
@@ -93,19 +92,25 @@ export default function App() {
       {/* Detail Panel */}
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>
-          {selectedCountry ? selectedCountry : 'Tap a country on the globe'}
+          {selectedCountry ?? 'Tap a country on the globe'}
         </Text>
-        <Text style={styles.panelBody}>
-          {selectedCountry
-            ? `Selected · Current metric: ${METRICS.find((m) => m.id === metric)?.label}. Full value + legend coming next.`
-            : 'Spin and pinch to explore. Country details and metric values will appear here.'}
+        {selectedCountry && selectedValue != null ? (
+          <Text style={styles.panelValue}>
+            {METRICS.find((m) => m.id === metric)?.label}:{' '}
+            {formatMetricValue(selectedValue, metric)}
+          </Text>
+        ) : (
+          <Text style={styles.panelBody}>
+            {SAMPLE_METRICS.length} sample countries colored by metric. Spin, pinch, tap.
+          </Text>
+        )}
+        <Text style={styles.panelHint}>
+          Soft ambient palette · Values are illustrative sample data
         </Text>
       </View>
     </SafeAreaView>
   );
 }
-
-const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -145,17 +150,27 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#1a1a24',
-    minHeight: 90,
+    minHeight: 100,
   },
   panelTitle: {
     color: '#d0d0e0',
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 6,
+    marginBottom: 4,
+  },
+  panelValue: {
+    color: '#8ab8c8',
+    fontSize: 15,
+    marginBottom: 4,
   },
   panelBody: {
     color: '#777790',
     fontSize: 13,
     lineHeight: 18,
+  },
+  panelHint: {
+    color: '#55556a',
+    fontSize: 11,
+    marginTop: 6,
   },
 });
