@@ -22,14 +22,12 @@ import { Legend } from './components/Legend';
  *
  * Dark ambient · Soft gentle colors · Metric-driven country coloring + legend
  *
- * Model loading strategy:
- * 1. Prefer a locally bundled model at assets/models/atlas_hex_subdiv_5L.glb (true offline)
- * 2. Fall back to the small mobile CDN model if the local file is not present yet
+ * OFFLINE MODEL:
+ * Place the file at: assets/models/atlas_hex_subdiv_5L.glb
+ * Download from:
+ * https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb
  *
- * To go fully offline:
- *   - Download https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb
- *   - Place it in assets/models/atlas_hex_subdiv_5L.glb
- *   - The require() below will then be used automatically
+ * Once the file exists, the require() below makes the app fully offline.
  */
 
 const METRICS: { id: MetricId; label: string }[] = [
@@ -38,17 +36,13 @@ const METRICS: { id: MetricId; label: string }[] = [
   { id: 'gdp_pc', label: 'GDP per Capita' },
 ];
 
-// CDN fallback (small mobile tier ≈ 1 MB)
-const CDN_MOBILE_MODEL =
-  'https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb';
+// Local offline model (preferred).
+// If the file is missing you will get a Metro bundler error — that means you still need to add the GLB.
+// Fallback CDN line is kept commented for reference.
+const MODEL_URL = require('./assets/models/atlas_hex_subdiv_5L.glb');
 
-// Attempt to use a local asset. If the file is missing this will throw at build time,
-// so we keep the CDN path as the active default until you add the file.
-// Once the GLB is in assets/models/, change MODEL_URL to the local require.
-const MODEL_URL = CDN_MOBILE_MODEL;
-
-// Example of the local form (uncomment + add the file to enable offline):
-// const MODEL_URL = require('./assets/models/atlas_hex_subdiv_5L.glb');
+// CDN fallback (only use while the local file is not yet present):
+// const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@aeryflux/globe@1.8.0/models/atlas_hex_subdiv_5L.glb';
 
 export default function App() {
   const [metric, setMetric] = useState<MetricId>('population');
@@ -91,10 +85,8 @@ export default function App() {
         />
       </View>
 
-      {/* Legend */}
       <Legend metricLabel={currentMetricLabel} />
 
-      {/* Metric Switcher */}
       <View style={styles.metricBar}>
         {METRICS.map((m) => (
           <Text
@@ -107,7 +99,6 @@ export default function App() {
         ))}
       </View>
 
-      {/* Detail Panel */}
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>
           {selectedCountry ?? 'Tap a country on the globe'}
