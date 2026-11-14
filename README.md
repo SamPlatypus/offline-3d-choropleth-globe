@@ -7,49 +7,50 @@ Fully offline, mobile-first 3D spinnable world globe with choropleth country col
 ## Status
 
 - [x] Repository created
-- [x] Project scaffolded (Expo + React Native + Three.js foundation)
-- [ ] Core 3D globe with country boundaries
-- [ ] Choropleth coloring + metric switcher
-- [ ] Country selection + detail panel
-- [ ] Sample offline datasets bundled
+- [x] Project scaffolded (Expo + React Native)
+- [x] **Real 3D globe integrated** (`@aeryflux/globe`) — dark surface, spin / pinch controls, country click → panel
+- [ ] Full offline models (currently loads mobile-friendly model from CDN; will be bundled next)
+- [ ] Metric-driven choropleth coloring + sample datasets
+- [ ] Legend + richer country detail panel
 - [ ] Performance step-downs for mid/low-end devices
 - [ ] APK build + install test
 
-## Goals (from project prompt)
+## What’s working now
 
-- Freely rotatable / pinch-zoomable 3D globe
-- Map accurately wrapped; countries colored by metric
-- Fully offline after install (all data + geometry bundled)
-- Runs on real Android devices (mid-range target, with quality step-downs)
-- Minimal dark theme, soft ambient lighting, gentle low-saturation colors
-- Metric switcher, legend, side/bottom panel for selected country details
-- Delivered as installable APK
+- Interactive 3D globe (drag to rotate, pinch to zoom)
+- Soft dark ambient look with gentle country highlights
+- Tap a country → name appears in the bottom panel
+- Metric switcher UI (ready for data binding)
+- Clean dark UI shell matching the brief
 
-## Tech Direction
-
-- **Expo** (managed workflow preferred for easier APK generation)
-- **React Native** + **expo-gl** / **expo-three** or **@react-three/fiber** + **three**
-- Country geometry: simplified Natural Earth / public-domain GeoJSON or TopoJSON (bundled)
-- Possible helper: `@aeryflux/globe` (Expo-compatible 3D globe with country support) or custom R3F implementation
-- Sample metrics: population, land area, GDP per capita (public-domain style synthetic or open data)
-
-## Getting Started (once code is in place)
+## Run it
 
 ```bash
 npm install
 npx expo start
 ```
 
-Build APK (after EAS setup):
+Then open on a device / emulator (Android recommended).
 
-```bash
-eas build -p android --profile preview
-```
+> Note: First load may fetch the globe model from CDN. Offline packaging of the model is the next priority so the app works fully offline after install.
+
+## Tech
+
+- Expo (managed)
+- `@aeryflux/globe` (Three.js based, Expo-compatible, country interaction + data highlighting)
+- Dark ambient styling, soft low-saturation palette
+
+## Roadmap (next sessions)
+
+1. Bundle a small mobile GLB model for true offline use
+2. Add sample public-domain-style metric data and drive country colors/scales from the active metric
+3. Legend + improved detail panel
+4. APK via EAS Build
 
 ## License
 
-MIT (project code). Country boundary data follows source licenses (Natural Earth is public domain).
+MIT (project code). Globe models / geographic data follow their upstream licenses (Natural Earth public domain roots).
 
 ---
 
-Built iteratively from chat with Grok. Multi-session development expected.
+Built iteratively with Grok. Multi-session development.

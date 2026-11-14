@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  SafeAreaView,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { Globe } from '@aeryflux/globe/react-native';
 
 /**
- * Offline 3D Choropleth Globe - Foundation
+ * Offline 3D Choropleth Globe
  *
- * Dark ambient style. Soft gentle colors.
- * Next steps: integrate 3D globe (expo-gl + three / @aeryflux/globe / R3F),
- * load simplified country GeoJSON, apply choropleth, add metric switcher + panel.
+ * Dark ambient style · Soft gentle colors · Spinnable globe with country interaction
+ *
+ * Current: Real 3D globe (aeryflux) with controls + country click.
+ * Next: Full offline models, metric-driven choropleth coloring, sample data values.
  */
 
 const METRICS = [
@@ -18,26 +27,54 @@ const METRICS = [
 
 type MetricId = (typeof METRICS)[number]['id'];
 
+// Soft ambient demo highlights (gentle blues / teals / muted greens)
+// These will later be driven by real metric values + color scale.
+const DEMO_COUNTRY_DATA: Record<string, { scale: number; color?: string; extrusion?: number }> = {
+  'United States': { scale: 0.85, color: '#5b8fa8', extrusion: 0.15 },
+  China: { scale: 0.9, color: '#4a7c8c', extrusion: 0.12 },
+  India: { scale: 0.8, color: '#6a9aaa', extrusion: 0.1 },
+  Brazil: { scale: 0.75, color: '#5a8a7a', extrusion: 0.08 },
+  Russia: { scale: 0.7, color: '#4a6a8a', extrusion: 0.1 },
+  Japan: { scale: 0.65, color: '#7a9aaa', extrusion: 0.05 },
+  Germany: { scale: 0.6, color: '#6a8a9a', extrusion: 0.05 },
+  'United Kingdom': { scale: 0.55, color: '#5a7a8a', extrusion: 0.04 },
+  France: { scale: 0.55, color: '#6a8aaa', extrusion: 0.04 },
+  Australia: { scale: 0.5, color: '#5a8a7a', extrusion: 0.06 },
+};
+
 export default function App() {
   const [metric, setMetric] = useState<MetricId>('population');
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
+  // For now the demo data is static. Later this will recompute colors/scales from the active metric.
+  const countryData = useMemo(() => DEMO_COUNTRY_DATA, []);
+
+  const handleCountryClick = (name: string) => {
+    setSelectedCountry(name);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ExpoStatusBar style="light" />
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0f" />
 
-      {/* Placeholder for 3D Globe */}
+      {/* 3D Globe */}
       <View style={styles.globeContainer}>
-        <View style={styles.globePlaceholder}>
-          <Text style={styles.placeholderTitle}>3D Globe</Text>
-          <Text style={styles.placeholderSub}>
-            Spin · Pinch-zoom · Choropleth{('\n')}Coming in next session
-          </Text>
-          <Text style={styles.placeholderHint}>
-            Metric: {METRICS.find((m) => m.id === metric)?.label}
-          </Text>
-        </View>
+        <Globe
+          surface="dark"
+          showCountries
+          showBorders
+          enableControls
+          rotationSpeed={0.00025}
+          ambientIntensity={0.25}
+          ambientColor="#6a9aaa"
+          countryData={countryData}
+          dataHighlightColor="#7ab8c8"
+          onCountryClick={handleCountryClick}
+          glowIntensity={0.5}
+          bloomStrength={0.2}
+          style={styles.globe}
+        />
       </View>
 
       {/* Metric Switcher */}
@@ -53,20 +90,22 @@ export default function App() {
         ))}
       </View>
 
-      {/* Side / Bottom Panel (placeholder) */}
+      {/* Detail Panel */}
       <View style={styles.panel}>
         <Text style={styles.panelTitle}>
-          {selectedCountry ? selectedCountry : 'Tap a country'}
+          {selectedCountry ? selectedCountry : 'Tap a country on the globe'}
         </Text>
         <Text style={styles.panelBody}>
           {selectedCountry
-            ? `Details for current metric will appear here.`
-            : 'Country details + legend will live in this panel.'}
+            ? `Selected · Current metric: ${METRICS.find((m) => m.id === metric)?.label}. Full value + legend coming next.`
+            : 'Spin and pinch to explore. Country details and metric values will appear here.'}
         </Text>
       </View>
     </SafeAreaView>
   );
 }
+
+const { width } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -75,37 +114,12 @@ const styles = StyleSheet.create({
   },
   globeContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 16,
+    overflow: 'hidden',
   },
-  globePlaceholder: {
-    width: '90%',
-    aspectRatio: 1,
-    borderRadius: 999,
-    backgroundColor: '#12121a',
-    borderWidth: 1,
-    borderColor: '#1e1e2a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  placeholderTitle: {
-    color: '#e0e0e8',
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  placeholderSub: {
-    color: '#8888a0',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  placeholderHint: {
-    color: '#6a8a9a',
-    fontSize: 13,
-    marginTop: 16,
+  globe: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   metricBar: {
     flexDirection: 'row',
@@ -131,7 +145,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: '#1a1a24',
-    minHeight: 100,
+    minHeight: 90,
   },
   panelTitle: {
     color: '#d0d0e0',
